@@ -16,9 +16,26 @@ TuiFile can
 
 ## Demo
 
-using i3 (wm) and zellij (green border).
+https://github.com/Dummi26/tuifile/assets/67615357/f2ff5c88-91f2-4161-b16a-603127851f2f
 
-https://github.com/Dummi26/tuifile/assets/67615357/0b0553c9-72e5-4d38-8537-f6cc39147ab1
+- start in `/tmp/demo/`
+- in a new instance (1), navigate to `/markone/Music/`
+- select four directories
+- go back to instance (0) in `/tmp/demo`
+- create a new directory `my music`
+- copy the selected directories to this new directory
+- enable recursive view
+- select some files from subdirectories
+- in a third instance, (1) (the previous (1) is now (2)), disable recursive view and go back to `/tmp/demo`
+- create a new directory, `fav songs`
+- copy the selected files to this new directory
+- go back to `my music`
+- filter for files containing `.mp3`
+- select and then remove all
+- clear the filter to reveal remaining files (they are all `.wma` or `.jpg`)
+- select all files in `my music` and remove them
+- select all files in `/tmp/demo` and remove them
+- exit
 
 ## Controls
 
