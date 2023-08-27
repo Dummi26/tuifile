@@ -4,7 +4,7 @@ use crossterm::{cursor, queue, style, terminal, ExecutableCommand};
 use regex::RegexBuilder;
 
 use crate::updates::Updates;
-use crate::{tasks, AppCmd, BackgroundTask, DirContent, DirContentType, Focus, Share};
+use crate::{tasks, AppCmd, DirContent, DirContentType, Focus, Share};
 use std::io::Write;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
@@ -309,7 +309,7 @@ impl TuiFile {
                                 text.push(endchar);
                                 vec![text.red()]
                             }
-                            DirContentType::Dir { metadata } => {
+                            DirContentType::Dir { metadata: _ } => {
                                 let filenamelen = share.size.0 as usize - 2 - text_charlen;
                                 if entry.name_charlen < filenamelen {
                                     text.push_str(&entry.name);
@@ -335,7 +335,7 @@ impl TuiFile {
                                 text.push(endchar);
                                 vec![text.stylize()]
                             }
-                            DirContentType::File { size, metadata } => {
+                            DirContentType::File { size, metadata: _ } => {
                                 let filenamelen =
                                     share.size.0 as usize - 3 - text_charlen - size.chars().count();
                                 if entry.name_charlen < filenamelen {
@@ -364,7 +364,7 @@ impl TuiFile {
                                 text.push(endchar);
                                 vec![text.stylize()]
                             }
-                            DirContentType::Symlink { metadata } => {
+                            DirContentType::Symlink { metadata: _ } => {
                                 let filenamelen = share.size.0 as usize - 2 - text_charlen;
                                 if entry.name_charlen < filenamelen {
                                     text.push_str(&entry.name);
@@ -688,7 +688,7 @@ impl TuiFile {
                         }
                         _ => {}
                     },
-                    Event::Paste(e) => {}
+                    Event::Paste(_e) => {}
                     Event::Resize(w, h) => {
                         share.size.0 = w;
                         share.size.1 = h;

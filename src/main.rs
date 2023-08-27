@@ -9,7 +9,6 @@ use std::{
     rc::Rc,
     sync::{Arc, Mutex},
     thread::JoinHandle,
-    time::Duration,
 };
 
 use clap::{command, Parser};
@@ -156,6 +155,7 @@ fn main() -> io::Result<()> {
 /// - F => focus Find/Filter bar
 /// - N => New directory from search text
 /// - C => Copy selected files to this directory.
+/// - C => Remove selected files and directories non-recursively
 /// - 1-9 or 0 => set recursive depth limit (0 = infinite)
 /// - T => open terminal here ($TERM)
 /// - E => open in editor ($EDITOR <file/dir>)
@@ -302,7 +302,7 @@ impl TuiFile {
     }
     pub fn new(current_dir: PathBuf) -> io::Result<Self> {
         // state
-        let (width, height) = terminal::size()?;
+        let (_width, _height) = terminal::size()?;
         let updates = u32::MAX;
         Ok(Self {
             active: true,

@@ -2,10 +2,9 @@ use std::{
     collections::HashSet,
     fs, io,
     path::{Path, PathBuf},
-    time::Duration,
 };
 
-use crate::{updates::Updates, BackgroundTask, Share, TuiFile};
+use crate::{BackgroundTask, Share};
 
 pub(crate) fn task_copy(
     src: Vec<(PathBuf, Vec<(PathBuf, bool)>)>,
@@ -78,7 +77,7 @@ fn copy_dir(
 
 pub(crate) fn task_del(paths: Vec<PathBuf>, share: &mut Share) {
     share.tasks.push(BackgroundTask::new(move |status| {
-        let mut total: usize = paths.len();
+        let total: usize = paths.len();
         for path in paths {
             {
                 let s = format!("rm {total}");
