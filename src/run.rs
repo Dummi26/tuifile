@@ -697,7 +697,7 @@ impl TuiFile {
                             self.updates.request_move_cursor();
                         }
                         // M -> toggle threaded mode based on searchbar
-                        (_, KeyCode::Char('m')) => {
+                        (Focus::Files, KeyCode::Char('m')) => {
                             self.updates.request_reset_search();
                             self.updates.request_redraw_filebar();
                             if self.search_text == "b" {
@@ -742,6 +742,7 @@ impl TuiFile {
                                 .filter(|e| e.selected)
                                 .map(|e| e.path.clone())
                                 .collect();
+                            self.updates.request_redraw_infobar();
                             tasks::task_del(paths, share);
                         }
                         // P -> Permissions
