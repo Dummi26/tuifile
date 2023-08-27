@@ -727,11 +727,7 @@ impl TuiFile {
                         }
                         // C -> Copy
                         (Focus::Files, KeyCode::Char('c')) => {
-                            if let Some(e) = self.dir_content.get(self.current_index) {
-                                if let DirContentType::Dir { .. } = e.more {
-                                    return Ok(AppCmd::CopyTo(e.path.clone()));
-                                }
-                            }
+                            return Ok(AppCmd::CopyTo(self.current_dir.clone()));
                         }
                         // R -> Remove
                         (Focus::Files, KeyCode::Char('r')) => {
