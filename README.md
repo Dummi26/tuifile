@@ -39,7 +39,7 @@ Ctrl+Right/L -> duplicate
 - S -> Select or toggle current
 - D -> Deselect all
 - F -> focus Find/Filter bar
-- M -> set Mode bysed on Find/Filter bar
+- M -> set Mode based on Find/Filter bar (see File List Modes)
 - N -> New directory (name taken from find/filter bar text)
 - C -> Copy selected to this directory
 - R -> remove selected files and directories (not recursive: also requires selecting the directories content)

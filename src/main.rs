@@ -149,9 +149,12 @@ fn main() -> io::Result<()> {
 /// - S => Select or toggle current
 /// - D => Deselect all
 /// - F => focus Find/Filter bar
+/// - M => set Mode based on Find/Filter bar ((t/b)[seconds])
 /// - N => New directory from search text
 /// - C => Copy selected files to this directory.
 /// - R => Remove selected files and directories non-recursively
+/// - P -> set Permissions (mode taken as base-8 number from find/filter bar text)
+/// - O -> set Owner (and group - TODO!)
 /// - 1-9 or 0 => set recursive depth limit (0 = infinite)
 /// - T => open terminal here ($TERM)
 /// - E => open in editor ($EDITOR <file/dir>)
