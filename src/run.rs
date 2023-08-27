@@ -468,7 +468,8 @@ impl TuiFile {
                                         text_charlen -= 1;
                                     }
                                     text.push_str(" - Err: ");
-                                    text_charlen += 8;
+                                    // make text_charlen 1 too large (for the endchar)
+                                    text_charlen += 9;
                                     for ch in e.chars() {
                                         if ch == '\n' || ch == '\r' {
                                             continue;
@@ -479,8 +480,6 @@ impl TuiFile {
                                         text_charlen += 1;
                                         text.push(ch);
                                     }
-                                    // make text_charlen 1 too large (for the endchar)
-                                    text_charlen += 1;
                                     while text_charlen < share.size.0 as _ {
                                         text.push(' ');
                                         text_charlen += 1;
