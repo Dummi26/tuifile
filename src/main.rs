@@ -155,7 +155,7 @@ fn main() -> io::Result<()> {
 /// - F => focus Find/Filter bar
 /// - N => New directory from search text
 /// - C => Copy selected files to this directory.
-/// - C => Remove selected files and directories non-recursively
+/// - R => Remove selected files and directories non-recursively
 /// - 1-9 or 0 => set recursive depth limit (0 = infinite)
 /// - T => open terminal here ($TERM)
 /// - E => open in editor ($EDITOR <file/dir>)
