@@ -41,11 +41,11 @@ https://github.com/Dummi26/tuifile/assets/67615357/f2ff5c88-91f2-4161-b16a-60312
 
 ### Global
 
-Ctrl+C/D -> quit
-Ctrl+Up/K -> previous
-Ctrl+Down/J -> next
-Ctrl+Left/H -> close
-Ctrl+Right/L -> duplicate
+- Ctrl+C/D -> quit
+- Ctrl+Up/K -> previous
+- Ctrl+Down/J -> next
+- Ctrl+Left/H -> close
+- Ctrl+Right/L -> duplicate
 
 ### Normal
 
