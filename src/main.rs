@@ -3,10 +3,9 @@ mod tasks;
 mod updates;
 
 use std::{
-    fs::{self, DirEntry, Metadata},
+    fs::{self, Metadata},
     io::{self, StdoutLock},
     path::PathBuf,
-    rc::Rc,
     sync::{Arc, Mutex},
     thread::JoinHandle,
 };
@@ -46,6 +45,7 @@ fn main() -> io::Result<()> {
         terminal_command: std::env::var("TERM").unwrap_or("alacritty".to_string()),
         editor_command: std::env::var("EDITOR").unwrap_or("nano".to_string()),
         live_search: !args.no_live_search,
+        info_what: vec![0, 1],
     };
     if args.check {
         eprintln!("Terminal: {}", share.terminal_command);
@@ -111,11 +111,7 @@ fn main() -> io::Result<()> {
                                 .filter(|e| e.selected)
                                 .filter_map(|e| {
                                     Some((
-                                        e.entry
-                                            .path()
-                                            .strip_prefix(&v.current_dir)
-                                            .ok()?
-                                            .to_owned(),
+                                        e.path.strip_prefix(&v.current_dir).ok()?.to_owned(),
                                         e.rel_depth == v.scan_files_max_depth,
                                     ))
                                 })
@@ -193,30 +189,39 @@ struct Share {
     live_search: bool,
     terminal_command: String,
     editor_command: String,
+    /// 0: size
+    /// 1: mode (permissions)
+    info_what: Vec<u32>,
 }
 impl Share {
-    fn check_bgtasks(&mut self) -> bool {
+    /// returns Some if any task has finished.
+    /// returns Some(true) if at least one of these tasks may have altered files.
+    /// (this should trigger a rescan)
+    fn check_bgtasks(&mut self) -> Option<bool> {
         for (i, task) in self.tasks.iter_mut().enumerate() {
             if task.thread.is_finished() {
-                self.tasks.remove(i);
-                return true;
+                return Some(self.tasks.remove(i).rescan_after);
             }
         }
-        false
+        None
     }
 }
 struct BackgroundTask {
     status: Arc<Mutex<String>>,
     thread: JoinHandle<Result<(), String>>,
+    rescan_after: bool,
 }
 impl BackgroundTask {
     pub fn new(
+        text: String,
         func: impl FnOnce(Arc<Mutex<String>>) -> Result<(), String> + Send + 'static,
+        rescan_after: bool,
     ) -> Self {
-        let status = Arc::new(Mutex::new(String::new()));
+        let status = Arc::new(Mutex::new(text));
         Self {
             status: Arc::clone(&status),
             thread: std::thread::spawn(move || func(status)),
+            rescan_after,
         }
     }
 }
@@ -226,6 +231,7 @@ struct TuiFile {
     current_dir: PathBuf,
     dir_content: Vec<DirContent>,
     dir_content_len: usize,
+    dir_content_builder_task: Option<Arc<Mutex<Option<Result<Vec<DirContent>, String>>>>>,
     scroll: usize,
     current_index: usize,
     focus: Focus,
@@ -238,15 +244,39 @@ struct TuiFile {
     last_drawn_files_count: usize,
     last_files_max_scroll: usize,
     after_rescanning_files: Vec<Box<dyn FnOnce(&mut Self)>>,
+    scan_files_mode: ScanFilesMode,
+}
+#[derive(Clone)]
+enum ScanFilesMode {
+    /// file-scanning blocks the main thread.
+    /// prevents flickering.
+    Blocking,
+    /// file-scanning doesn't block the main thread.
+    /// leads to flickering as the file list appears empty until the thread finishes.
+    Threaded,
+    /// file-scanning blocks the main thread for up to _ seconds.
+    /// after the timeout is reached, file scanning is stopped.
+    /// can lead to incomplete file lists.
+    Timeout(f32),
+    /// file-scanning blocks the main thread for up to _ seconds.
+    /// after the timeout is reached, file-scanning will restart on a thread.
+    /// prevents flickering but will scan the first files twice if the timeout is reached.
+    TimeoutThenThreaded(f32),
+}
+impl Default for ScanFilesMode {
+    fn default() -> Self {
+        Self::Blocking
+    }
 }
 #[derive(Clone)]
 struct DirContent {
-    entry: Rc<DirEntry>,
+    path: PathBuf,
     name: String,
     name_charlen: usize,
     rel_depth: usize,
     passes_filter: bool,
     selected: bool,
+    info: String,
     more: DirContentType,
 }
 #[derive(Clone)]
@@ -257,7 +287,6 @@ enum DirContentType {
         metadata: Metadata,
     },
     File {
-        size: String,
         metadata: Metadata,
     },
     Symlink {
@@ -286,6 +315,7 @@ impl TuiFile {
             current_dir: self.current_dir.clone(),
             dir_content: self.dir_content.clone(),
             dir_content_len: self.dir_content_len,
+            dir_content_builder_task: None,
             scroll: self.scroll,
             current_index: self.current_index,
             focus: self.focus.clone(),
@@ -298,6 +328,7 @@ impl TuiFile {
             last_drawn_files_count: self.last_drawn_files_count,
             last_files_max_scroll: self.last_files_max_scroll,
             after_rescanning_files: vec![],
+            scan_files_mode: ScanFilesMode::default(),
         }
     }
     pub fn new(current_dir: PathBuf) -> io::Result<Self> {
@@ -310,6 +341,7 @@ impl TuiFile {
             current_dir,
             dir_content: vec![],
             dir_content_len: 0,
+            dir_content_builder_task: None,
             scroll: 0,
             current_index: 0,
             focus: Focus::Files,
@@ -322,6 +354,7 @@ impl TuiFile {
             last_drawn_files_count: 0,
             last_files_max_scroll: 0,
             after_rescanning_files: vec![],
+            scan_files_mode: ScanFilesMode::default(),
         })
     }
     fn set_current_index(&mut self, mut i: usize) {

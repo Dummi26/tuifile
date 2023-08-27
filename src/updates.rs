@@ -40,6 +40,14 @@ pub(crate) trait Updates {
     fn reset_search(&self) -> bool;
     fn dont_reset_search(&mut self);
     fn request_reset_search(&mut self);
+
+    fn rescanning_files_complete(&self) -> bool;
+    fn dont_rescanning_files_complete(&mut self);
+    fn request_rescanning_files_complete(&mut self);
+
+    fn redraw_filebar(&self) -> bool;
+    fn dont_redraw_filebar(&mut self);
+    fn request_redraw_filebar(&mut self);
 }
 impl Updates for u32 {
     fn rescan_files(&self) -> bool {
@@ -122,5 +130,23 @@ impl Updates for u32 {
     }
     fn request_reset_search(&mut self) {
         *self |= 0b100000000;
+    }
+    fn rescanning_files_complete(&self) -> bool {
+        0 != self & 0b1000000000
+    }
+    fn dont_rescanning_files_complete(&mut self) {
+        *self ^= 0b1000000000;
+    }
+    fn request_rescanning_files_complete(&mut self) {
+        *self |= 0b1000000000;
+    }
+    fn redraw_filebar(&self) -> bool {
+        0 != self & 0b10000000000
+    }
+    fn dont_redraw_filebar(&mut self) {
+        *self ^= 0b10000000000;
+    }
+    fn request_redraw_filebar(&mut self) {
+        *self |= 0b10000000000;
     }
 }
