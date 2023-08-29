@@ -1,5 +1,5 @@
 use crossterm::event::{poll, read, Event, KeyCode, KeyModifiers};
-use crossterm::style::{Attribute, Color, Stylize};
+use crossterm::style::{Attribute, Stylize};
 use crossterm::{cursor, queue, style, terminal, ExecutableCommand};
 use regex::RegexBuilder;
 
@@ -11,7 +11,6 @@ use std::io::Write;
 use std::os::unix::prelude::PermissionsExt;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
-use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use std::{fs, io};
@@ -281,8 +280,13 @@ impl TuiFile {
             }
             if self.updates.rescanning_files_complete() {
                 self.updates.dont_rescanning_files_complete();
-                if self.current_index >= self.dir_content.len() {
-                    self.current_index = self.dir_content.len().saturating_sub(1);
+                if self.current_index >= self.dir_content.len()
+                    || self.dir_content[self.current_index].passes_filter
+                {
+                    self.set_current_index_to_visible(
+                        self.dir_content.len().saturating_sub(1),
+                        false,
+                    );
                 }
                 if !self.after_rescanning_files.is_empty() {
                     for func in std::mem::replace(&mut self.after_rescanning_files, vec![]) {

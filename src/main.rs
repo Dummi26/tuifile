@@ -331,7 +331,7 @@ impl TuiFile {
             last_drawn_files_count: self.last_drawn_files_count,
             last_files_max_scroll: self.last_files_max_scroll,
             after_rescanning_files: vec![],
-            scan_files_mode: ScanFilesMode::default(),
+            scan_files_mode: self.scan_files_mode.clone(),
         }
     }
     pub fn new(current_dir: PathBuf) -> io::Result<Self> {
