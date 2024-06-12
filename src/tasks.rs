@@ -26,29 +26,25 @@ pub(crate) fn task_copy(
                         *status.lock().unwrap() = s;
                     }
                     let file_from = parent.join(&rel_path);
-                    let file_to = target.join(&rel_path);
                     let is_dir = file_from.is_dir();
-                    let parent_created = if let Some(parent) = rel_path.parent() {
-                        parent.as_os_str().is_empty() || created.contains(parent)
+                    let file_to = if let Some(parent) = rel_path.parent() {
+                        let mut p = PathBuf::new();
+                        for c in parent.components() {
+                            p.push(c);
+                            if !created.contains(&p) {
+                                p.pop();
+                                break;
+                            }
+                        }
+                        target.join(&p).join(rel_path.file_name().unwrap())
                     } else {
-                        true
+                        target.join(&rel_path)
                     };
-                    if parent_created {
-                        if is_dir {
-                            copy_dir(file_from, file_to, copy_recursive);
-                            created.insert(rel_path);
-                        } else {
-                            fs::copy(&file_from, &file_to);
-                        }
+                    if is_dir {
+                        copy_dir(file_from, file_to, copy_recursive);
+                        created.insert(rel_path);
                     } else {
-                        let rel_path = rel_path.file_name().unwrap();
-                        let file_to = target.join(&rel_path);
-                        if is_dir {
-                            copy_dir(file_from, file_to, copy_recursive);
-                            created.insert(rel_path.into());
-                        } else {
-                            fs::copy(&file_from, &file_to);
-                        }
+                        fs::copy(&file_from, &file_to);
                     }
                 }
             }

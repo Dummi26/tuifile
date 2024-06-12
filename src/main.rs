@@ -384,19 +384,20 @@ impl TuiFile {
     fn set_current_index_to_visible(&mut self, start: usize, inc: bool) {
         let mut i = start;
         loop {
-            if self.dir_content.get(i).is_some_and(|e| e.passes_filter) {
-                self.set_current_index(i);
+            if let Some(e) = self.dir_content.get(i) {
+                if e.passes_filter {
+                    self.set_current_index(i);
+                    return;
+                }
+            } else {
                 return;
             }
             if inc {
                 i += 1;
-                if i >= self.dir_content.len() {
-                    break;
-                }
             } else if i > 0 {
                 i -= 1;
             } else {
-                break;
+                return;
             }
         }
     }
@@ -407,7 +408,7 @@ impl TuiFile {
         self.updates.request_rescan_files();
         self.after_rescanning_files.push(Box::new(move |s| {
             if let Some(i) = s.dir_content.iter().position(find_by) {
-                s.set_current_index(i)
+                s.set_current_index(i);
             } else {
                 s.updates.request_reset_current_index();
             }
