@@ -42,13 +42,13 @@ fn main() -> io::Result<()> {
         total_instances: 1,
         stdout: io::stdout().lock(),
         size: terminal::size()?,
-        terminal_command: std::env::var("TERM").unwrap_or("alacritty".to_string()),
+        shell_command: std::env::var("SHELL").unwrap_or("sh".to_string()),
         editor_command: std::env::var("EDITOR").unwrap_or("nano".to_string()),
         live_search: !args.no_live_search,
         info_what: vec![0, 1],
     };
     if args.check {
-        eprintln!("Terminal: {}", share.terminal_command);
+        eprintln!("Shell: {}", share.shell_command);
         eprintln!("Editor: {}", share.editor_command);
         return Ok(());
     }
@@ -122,7 +122,7 @@ fn main() -> io::Result<()> {
                 tasks::task_copy(src, destination, &mut share);
                 false
             }
-            AppCmd::TaskFinished => {
+            AppCmd::RescanFiles => {
                 for i in &mut instances {
                     i.updates.request_rescan_files();
                 }
@@ -148,7 +148,7 @@ fn main() -> io::Result<()> {
 /// - A => Alternate selection (toggle All)
 /// - S => Select or toggle current
 /// - D => Deselect all
-/// - F => focus Find/Filter bar
+/// - F or / => focus Find/Filter bar
 /// - M => set Mode based on Find/Filter bar ((t/b)[seconds])
 /// - N => New directory from search text
 /// - C => Copy selected files to this directory.
@@ -156,7 +156,8 @@ fn main() -> io::Result<()> {
 /// - P -> set Permissions (mode taken as base-8 number from find/filter bar text)
 /// - O -> set Owner (and group - TODO!)
 /// - 1-9 or 0 => set recursive depth limit (0 = infinite)
-/// - T => open terminal here ($TERM)
+/// - Q => query files again if they have changes
+/// - W => open terminal here ($SHELL)
 /// - E => open in editor ($EDITOR <file/dir>)
 /// Find/Filter Bar:
 /// - Esc: back and discard
@@ -190,7 +191,7 @@ struct Share {
     stdout: StdoutLock<'static>,
     //
     live_search: bool,
-    terminal_command: String,
+    shell_command: String,
     editor_command: String,
     /// 0: size
     /// 1: mode (permissions)
@@ -201,12 +202,25 @@ impl Share {
     /// returns Some(true) if at least one of these tasks may have altered files.
     /// (this should trigger a rescan)
     fn check_bgtasks(&mut self) -> Option<bool> {
-        for (i, task) in self.tasks.iter_mut().enumerate() {
-            if task.thread.is_finished() {
-                return Some(self.tasks.remove(i).rescan_after);
-            }
+        let mut finished = false;
+        let mut rescan = false;
+        for i in self
+            .tasks
+            .iter()
+            .enumerate()
+            .filter(|v| v.1.thread.is_finished())
+            .map(|v| v.0)
+            .collect::<Vec<_>>()
+        {
+            let task = self.tasks.remove(i);
+            finished = true;
+            rescan |= task.rescan_after;
         }
-        None
+        if finished {
+            Some(rescan)
+        } else {
+            None
+        }
     }
 }
 struct BackgroundTask {
@@ -308,7 +322,7 @@ enum AppCmd {
     PrevInstance,
     AddInstance(TuiFile),
     CopyTo(PathBuf),
-    TaskFinished,
+    RescanFiles,
 }
 impl TuiFile {
     pub fn clone(&self) -> Self {

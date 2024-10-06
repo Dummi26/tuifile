@@ -3,7 +3,6 @@ use std::{
     fs, io,
     os::unix::prelude::PermissionsExt,
     path::{Path, PathBuf},
-    time::Duration,
 };
 
 use crate::{BackgroundTask, Share};

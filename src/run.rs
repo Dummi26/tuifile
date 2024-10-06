@@ -10,7 +10,7 @@ use crate::{
 use std::io::Write;
 use std::os::unix::prelude::PermissionsExt;
 use std::path::PathBuf;
-use std::process::{Command, Stdio};
+use std::process::Command;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use std::{fs, io};
@@ -47,7 +47,7 @@ impl TuiFile {
                     }
                 }
                 if rescan {
-                    return Ok(AppCmd::TaskFinished);
+                    return Ok(AppCmd::RescanFiles);
                 }
             }
             // rescan files if necessary
@@ -259,6 +259,7 @@ impl TuiFile {
                                                 }
                                             }
                                             if depth < max_depth {
+                                                // should (almost?) never return an error
                                                 get_files(
                                                     dir_content,
                                                     p,
@@ -266,7 +267,7 @@ impl TuiFile {
                                                     max_depth,
                                                     info_what,
                                                     time_limit,
-                                                );
+                                                )?;
                                             }
                                         }
                                     }
@@ -696,7 +697,8 @@ impl TuiFile {
                                 }
                             }
                         }
-                        (Focus::Files, KeyCode::Char('f')) => {
+                        // Search
+                        (Focus::Files, KeyCode::Char('f' | '/')) => {
                             self.focus = Focus::SearchBar;
                             self.updates.request_move_cursor();
                         }
@@ -719,7 +721,7 @@ impl TuiFile {
                                 }
                             }
                         }
-                        // N -> New Directory
+                        // N -> New Directory based on search bar
                         (Focus::Files, KeyCode::Char('n')) => {
                             let dir = self.current_dir.join(&self.search_text);
                             if fs::create_dir_all(&dir).is_ok() {
@@ -765,23 +767,63 @@ impl TuiFile {
                             self.updates.request_reset_search();
                             // TODO!
                         }
-                        // T -> Open Terminal
-                        (Focus::Files, KeyCode::Char('t')) => 'term: {
-                            Command::new(&share.terminal_command)
+                        // Query files (Edit doesn't do this automatically, but running a shell does)
+                        (Focus::Files, KeyCode::Char('q')) => {
+                            return Ok(AppCmd::RescanFiles);
+                        }
+                        // W -> Shell (write a command, also it's they key above S for shell, and it's near E for Edit)
+                        (Focus::Files, KeyCode::Char('w')) => {
+                            Self::term_reset(share)?;
+                            if let Some(file) = self.dir_content.get(self.current_index) {
+                                eprintln!(
+                                    "Exit shell to return to TUIFILE. Selected file: {}",
+                                    file.path.to_string_lossy()
+                                );
+                            } else {
+                                eprintln!("Exit shell to return to TUIFILE.");
+                            }
+                            match Command::new(&share.shell_command)
                                 .current_dir(&self.current_dir)
-                                .stdout(Stdio::null())
-                                .stderr(Stdio::null())
-                                .spawn();
+                                .status()
+                            {
+                                Ok(s) => {
+                                    if !s.success() {
+                                        std::thread::sleep(Duration::from_secs(2));
+                                    }
+                                }
+                                Err(e) => {
+                                    eprintln!("Error running command {}: {e}", share.shell_command);
+                                    std::thread::sleep(Duration::from_secs(2));
+                                }
+                            }
+                            self.term_setup(share)?;
+                            return Ok(AppCmd::RescanFiles);
                         }
                         // E -> Edit
                         (Focus::Files, KeyCode::Char('e')) => {
                             Self::term_reset(share)?;
-                            if let Some(entry) = self.dir_content.get(self.current_index) {
-                                let entry_path = entry.path.clone();
-                                Command::new(&share.editor_command)
-                                    .arg(&entry_path)
-                                    .current_dir(&self.current_dir)
-                                    .status();
+                            let entry_path = self
+                                .dir_content
+                                .get(self.current_index)
+                                .map(|v| &v.path)
+                                .unwrap_or(&self.current_dir);
+                            match Command::new(&share.editor_command)
+                                .arg(&entry_path)
+                                .current_dir(&self.current_dir)
+                                .status()
+                            {
+                                Ok(s) => {
+                                    if !s.success() {
+                                        std::thread::sleep(Duration::from_secs(2));
+                                    }
+                                }
+                                Err(e) => {
+                                    eprintln!(
+                                        "Error running command {}: {e}",
+                                        share.editor_command
+                                    );
+                                    std::thread::sleep(Duration::from_secs(2));
+                                }
                             }
                             self.term_setup(share)?;
                         }
