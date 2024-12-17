@@ -385,7 +385,7 @@ impl TuiFile {
             self.scroll = i;
             self.updates.request_redraw_filelist();
         }
-        if i >= self.scroll + self.last_drawn_files_height {
+        if i >= self.scroll + self.last_drawn_files_height && self.last_drawn_files_height > 0 {
             self.scroll = 1 + i - self.last_drawn_files_height;
             self.updates.request_redraw_filelist();
         }
