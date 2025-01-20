@@ -17,7 +17,7 @@ use std::{fs, io};
 
 use crate::TuiFile;
 
-const BYTE_UNITS: [&'static str; 6] = ["B", "KB", "MB", "GB", "TB", "PB"];
+const BYTE_UNITS: [&'static str; 6] = ["", "K", "M", "G", "T", "P"];
 
 impl TuiFile {
     pub fn term_setup(&mut self, share: &mut Share) -> io::Result<()> {
